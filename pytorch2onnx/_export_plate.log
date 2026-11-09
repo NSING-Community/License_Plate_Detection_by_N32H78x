@@ -1,0 +1,25 @@
+﻿python.exe : C:\Users\1\anaconda3\envs\Yolo-FastestV2\Lib\copyreg.py:99: FutureWarning: `isinstance(treespec, LeafSpec)
+` is deprecated, use `isinstance(treespec, TreeSpec) and treespec.is_leaf()` instead.
+At line:1 char:410
++ ... ython.exe"; & $py pytorch2onnx_simplify.py --weights "E:\0 AI\3 Yolo- ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (C:\Users\1\anac...eaf()` instead.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+  return cls.__new__(cls, *args)
+load param...
+[torch.onnx] Obtain model graph for `Detector([...]` with `torch.export.export(..., strict=False)`...
+export onnx ...
+[torch.onnx] Obtain model graph for `Detector([...]` with `torch.export.export(..., strict=False)`... ✅
+[torch.onnx] Run decompositions...
+[torch.onnx] Run decompositions... ✅
+[torch.onnx] Translate the graph into ONNX...
+[torch.onnx] Translate the graph into ONNX... ✅
+[torch.onnx] Optimize the ONNX graph...
+Applied 146 of general pattern rewrite rules.
+[torch.onnx] Optimize the ONNX graph... ✅
+✓ Original model is valid
+✓ Simplified model saved to E:\0 AI\3 Yolo-FastestV2-main\pytorch2onnx\yolo-fastestv2-opt.onnx
+  Original size: 0.45 MB
+  Simplified size: 0.95 MB
+  Reduced by: -110.6%

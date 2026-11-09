@@ -1,0 +1,42 @@
+# ---- 数据集（体积大，可按 training/ 下脚本重新生成或另行索取）----
+training/data/train/
+training/data/val/
+training/data_crop/
+training/cache/
+training/runs/
+
+# ---- Keil / MDK 编译产物 ----
+Objects/
+Listings/
+*.o
+*.d
+*.crf
+*.axf
+*.hex
+*.bin
+*.map
+*.dep
+*.lnp
+*.iex
+*.htm
+*.build_log.htm
+*.uvguix.*
+*.scvd
+*.sct.bak
+RTE/_N32H78x/
+
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# ---- 导出中间产物 ----
+*.onnx.data
+tflite/onnx/
+
+# ---- 系统 ----
+Thumbs.db
+desktop.ini
+.DS_Store

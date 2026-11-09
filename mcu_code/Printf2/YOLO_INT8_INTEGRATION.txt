@@ -1,0 +1,71 @@
+====================================================================
+yolo-plate (Yolo-FastestV2 车牌 70 类) full-int8 TFLite-Micro 移植说明
+====================================================================
+目标板   : N32H78x (Cortex-M7, 600MHz)  + 外部 SDRAM(>=8MB)
+推理框架 : TFLite Micro 1.26.x (Keil RTE / cortex_m_generic pack)
+原始模型 : tflite/onnx2tf_int8_plate/plate-int8.tflite  (431,360 B)
+MD5      : 82693BCE77C3D5A9099BF268B5D815F5
+
+本文只讲 **① 整图找牌** 这一级。现在固件跑的是三网级联（① 找牌 → ② 裁剪找字 →
+③ 逐字分类），整条链路的规格、常数和实测数字见 mcu_code/RELEASE_v1.0_board.md。
+三个模型的 MD5 以 inc/model_data*.h 的头两行为准 —— 那才是链接进镜像的那份。
+
+0) 模型是什么
+   - onnx2tf tf_converter 后端 full-integer 量化, 校准集为真实车牌训练图
+   - 输入   : int8 [1,320,320,3] NHWC, quant scale=1/255, zero=-128
+             所以像素填法: dst[i] = (int8_t)(rgb_pixel - 128)
+   - 输出   : 两个 int8 head, 布局 A = [reg12|obj3|cls70]
+             (1,20,20,85) stride16   +  (1,10,10,85) stride32
+             输出层已在模型内做 sigmoid/softmax, 反量化即概率:
+             float = (q + 128) / 255
+   - 70 类, 三段的边界是**硬边界**(拼串跳过 0、查表按这三段):
+       0      = 车牌整体框
+       1..34  = "0123456789ABCDEFGHJKLMNPQRSTUVWXYZ"  (34 项, 无 I/O)
+       35..69 = 省份汉字, GBK 双字节, 见 yolo_inference.cpp 的 PROV_GBK[35][2]
+     (与 training/data/voc.names 的 GBK 顺序一致)
+
+1) 已完成的文件
+   - inc/model_data.h           模型 C 数组(带 data_area 段, 放 XIP Flash)
+   - MDK-ARM/yolo_inference.cpp 推理+解码+NMS  (已在 Keil 工程中)
+   - MDK-ARM/M7_TCM.sct         已把 tensor_arena_area 改到 SDRAM UNINIT 区
+   - inc/yolo_inference.h       接口头
+
+2) Keil 集成步骤 (MDK-ARM)
+   a. 添加源文件:  MDK-ARM\yolo_inference.cpp
+   b. 添加头文件目录: ..\inc   (含 tensorflow 头则由 RTE pack 提供)
+   c. 链接脚本 M7_TCM.sct 已改: arena 2MB -> RW_SDRAM1 0xC0000000 UNINIT
+      - 若用 IAR(EWARM): 需在 .icf 里给 yolo arena 加 0xC0000000 起 2MB
+        不初始化块 (place in ... with { section tensor_arena_area })
+      - SDRAM 必须在 yolo_plate_init() 之前由 BSP 完成 FEMC 初始化
+   d. 编译时把 TFLM 缺的算子加进 resolver:
+      已在 yolo_inference.cpp 注册全部算子:
+      Conv2D / DepthwiseConv2D / MaxPool2D / Pad / PadV2 / Concatenation /
+      Transpose / Reshape / Gather / ResizeNearestNeighbor / Logistic /
+      Softmax / Quantize / Dequantize
+
+3) 代码调用 (main 里)
+   #include "yolo_inference.h"
+   uint8_t rgb[320*320*3];            // 你的 320x320 RGB888 (0~255)
+
+   if (!yolo_plate_init()) error...;  // 一次
+   while(1) {
+       ... 抓图/缩放到 rgb ...
+       YoloBox boxes[64];
+       int n = yolo_plate_detect(rgb, boxes, 64);
+       // boxes[i].class_id  0=车牌, 其余=字符 id(按 voc.names)
+       // boxes[i].score     obj*clsmax
+       // 坐标是 320x320 输入图上的像素, 按 class_id 从左到右拼字符即可
+       UART_SendString(...);
+   }
+
+4) 算子内存说明
+   - 模型(431,360 B) 链接在 XIP Flash 的 data_area, 启动时随 .sct 的 scatter 表
+     拷到 AXI SRAM 再解析 (不是原地 XIP 读; ②/③ 才是 model_ro 那一路)
+   - tensor arena 必须 >= 模型峰值中间张量, 目前 2MB, 已放 SDRAM
+   - 若板载 SDRAM 不够, 请改 yolo_inference.cpp 的 TENSOR_ARENA_SIZE
+     和 M7_TCM.sct 的 RW_SDRAM1 长度(0x00200000); arena 实测占用 1,303,080 B
+
+5) 字符集 / 打印
+   字符名映射建议直接在 MCU 存 GBK 字符串表(70项), 或用 PC 端映射;
+   车牌字符为 class 1..69 (1..34 数字+字母, 35..69 省份汉字), class 0 是车牌整体框。
+   (这里早先写的是 1..66, 那是错的 —— 少算了 3 个省份字, 拼串时会漏进尾部空表项。)
