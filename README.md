@@ -1,6 +1,6 @@
 # License Plate Detection & Recognition on N32H78x
 
-基于 **Yolo-FastestV2** 的车牌检测 + 识别工程，在 **Natsemiconductor N32H787_HMI**（Cortex-M7 @600 MHz，外扩 SDRAM，OV5640 摄像头 + LCD）上端到端跑通。
+基于 **Yolo-FastestV2** 的车牌检测 + 识别工程，在 **NSING N32H787_HMI**（Cortex-M7 @600 MHz，外扩 SDRAM，OV5640 摄像头 + LCD）上端到端跑通。
 
 三张 int8 网络串联：**① 整图找车牌 → ② 裁剪块找字符 → ③ 逐字分类**，全部跑在 MCU 上，单帧约 2.7~3.5 秒输出一行车牌号。
 
